@@ -5,6 +5,7 @@
 
 /* Declaring structure for gtthread_t */
 typedef struct {
+	int id;  /* thread id to be used for equality */
         ucontext_t uc;  /* variable to store context */
 	void *retval; /*to store return value of thread*/
 } gtthread_t;
@@ -17,6 +18,7 @@ typedef struct node {
 typedef struct queue {
         struct node *front;
         struct node *rear;
+	int count;
 } queue;  /*Structure for queue structure*/
 
 

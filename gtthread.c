@@ -10,14 +10,13 @@ static ucontext_t maincontext;
 
 /*Count of present threads in progress
   Same is used as thread ID*/
-static int numThreads = 1;
+static int readyThreads = 0;
+static int finishThreads = 0;
 
-queue ready_q; /* queue to store threads */
+queue ready_q, finish_t; /* queue to store threads - ready and finished */
 
-gtthread_t *main;
-gtthread_t *current;
-
-sigset_t sign_t;
+static gtthread_t *main;
+static gtthread_t *current;
 
 /*Timer starting*/
 static long period_t;
@@ -54,6 +53,7 @@ int gtthread_create (gtthread_t *thread, void *(*start_routine)(void *), void *a
 	thread->uc.uc_link = NULL;
 	thread->uc.uc_stack.ss_sp = malloc(SIGSTKSZ);
 	thread->uc.uc_stack.ss_size = SIGSTKSZ;
+	thread->id = ++readyThreads;       
 	/*Creating the context */
         makecontext(&(thread->uc), (void (*) ()) thread_run, 2, start_routine, arg);
 	++numThreads;
@@ -81,9 +81,9 @@ void gtthread_init (long period) {
 	signal(SIGVTALRM,scheduler);
 
 	/*Saving context for main thread*/
+	main->id = -1;
 	getcontext(&(main->uc));	
 	current = main;
-
 
 }
 
@@ -91,6 +91,37 @@ void gtthread_init (long period) {
 int  gtthread_join(gtthread_t thread, void **status) {
 	printf("gtthread_join work in progress\n");
 	return 0;
+}
+
+/*Cancelling the thread*/
+int gtthread_cancel (gtthread_t thread) {
+
+	/* Remove the thread from the ready queue. */
+  int i = 0;
+  int found = 0;
+  gtthread_t* item;
+  for (int i = 0; i < que_size(&ready_q); ++i) {
+    item = (gtthread_t*) get_element_from_queue(&ready_queue, i);
+    if (gtthread_equal(*item, thread)) {
+      if (!queue_remove_element(&ready_queue, (void*) item)) {
+        return 1;
+      } else {
+        found = 1;
+        break;
+      }
+    }
+  }
+  if (gtthread_equal(thread, gtthread_self())) {
+    /* If it is the current thread, reschedule. */
+    cancel_current_thread = 1;
+    scheduler();
+    return 0;
+  }
+  if (!found) {
+    return 1;
+  }
+  return 0;
+
 }
 
 /* Thread Exit */
@@ -101,15 +132,14 @@ void gtthread_exit(void *retval) {
 /*Resource yielding by thread */
 int gtthread_yield() {
 	/* returns 0 on success */
-	return sched_yield();
+	stop_time();
+	start_time();
+	scheduler();
 }
 
-void signal_block(){
-	sigprocmask(SIG_BLOCK, &sign_t, NULL);
-}
-
-void signal_unblock(){
-	sigprocmask(SIG_UNBLOCK, &sign_t, NULL);
+/*To check if threads are same*/
+int gtthread_equal (gtthread_t t1, gtthread_t t2) {
+	return t1 == t2;
 }
 
 void scheduler () {
