@@ -19,7 +19,7 @@ typedef struct queue {
         struct node *front;
         struct node *rear;
 	int count;
-} queue;  /*Structure for queue structure*/
+} queue;  /*Structure of queue*/
 
 
 /*Functions to modify thread queue*/
@@ -65,9 +65,14 @@ gtthread_t gtthread_self(void);
 /* see man pthread_mutex(3); except init does not have the mutexattr parameter,
  * and should behave as if mutexattr is NULL (i.e., default attributes); also,
  * static initializers do not need to be implemented */
-/*int  gtthread_mutex_init(gtthread_mutex_t *mutex);
+/*Structure for mutex*/
+typedef struct {
+	int lock; /*stores 1 if locked else 0*/
+} gtthread_mutex_t;
+
+int  gtthread_mutex_init(gtthread_mutex_t *mutex);
 int  gtthread_mutex_lock(gtthread_mutex_t *mutex);
-int  gtthread_mutex_unlock(gtthread_mutex_t *mutex);*/
+int  gtthread_mutex_unlock(gtthread_mutex_t *mutex);
 
 /* gtthread_mutex_destroy() and gtthread_mutex_trylock() do not need to be
  * implemented */

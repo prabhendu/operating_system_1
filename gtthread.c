@@ -56,7 +56,7 @@ int enqueue (queue *que, gtthread_t *thread) {
         return 1;
 }
 
-gtthread_t * dequeue (queue *que) {
+gtthread_t *dequeue (queue *que) {
         if (que->front == NULL) return NULL;
         node *temp = (node *) malloc(sizeof(node));
         temp = que->front;
@@ -72,8 +72,8 @@ gtthread_t * dequeue (queue *que) {
 int que_size (queue *que) {
         node *temp = que->front;
 	if (temp == NULL) return 0;
-        int size;
-	size = 0;
+        int size = 0;
+	/*size = 0;*/
         while (temp == que->rear) {
                 ++size;
                 temp = temp->next;
@@ -185,10 +185,10 @@ void gtthread_init (long period) {
 	queue_init(&finish_q);
 
 	/*Setting up timer intervals*/
-	timer.it_value.tv_sec=period_t/1000000;
-	timer.it_value.tv_usec=period_t;
-	timer.it_interval.tv_sec=period_t/1000000;
-	timer.it_interval.tv_usec=period_t;
+	timer.it_value.tv_sec=period_t;
+	timer.it_value.tv_usec=0;
+	timer.it_interval.tv_sec=period_t;
+	timer.it_interval.tv_usec=0;
 	start_time();
 	/*Setting up signal handler*/
 	signal(SIGVTALRM,scheduler);
@@ -257,6 +257,7 @@ void gtthread_exit(void *retval) {
 	current->retval = retval;
 	enqueue(&finish_q, current);
 	gtthread_cancel(gtthread_self());
+	return;
 }
 
 /*Resource yielding by thread */
@@ -271,4 +272,32 @@ int gtthread_yield() {
 /*To check if threads are same*/
 int gtthread_equal (gtthread_t t1, gtthread_t t2) {
 	return t1.id == t2.id;
+}
+
+/*Functions to manipulate mutexes
+  Trying to use spin lock mechanism :D */
+
+int gtthread_mutex_init (gtthread_mutex_t *mutex) {
+	mutex->lock = 0; /*Initially it is unlocked*/
+	return 0;
+}
+
+int gtthread_mutex_lock (gtthread_mutex_t *mutex) {
+	stop_time();
+	if (mutex->lock == 0) {
+		start_time();
+		mutex->lock = 1;
+	} else {
+		while (mutex->lock == 1) {
+			start_time();
+			gtthread_yield();
+			stop_time();
+		}
+	}
+	return 0;
+}
+
+int gtthread_mutex_unlock(gtthread_mutex_t *mutex) {
+	mutex->lock = 0;
+	return 0;
 }
