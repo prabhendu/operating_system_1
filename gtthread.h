@@ -23,12 +23,12 @@ typedef struct queue {
 
 
 /*Functions to modify thread queue*/
-void queue_init (queue *que);
-int queue_size(queue *que);
-int enqueue (queue *que, gtthread_t *thread);
-gtthread_t * dequeue (queue *que);
-int remove_q_ele (queue *que, gtthread_t *thread);
-gtthread_t * get_element_from_queue(queue *que, int num);
+void queue_init (queue *que); //queue initialization
+int queue_size(queue *que); // returns size of queue
+int enqueue (queue *que, gtthread_t *thread); //adds a node to rear
+gtthread_t * dequeue (queue *que); //removes a node from front
+int remove_q_ele (queue *que, gtthread_t *thread); // removes a particular node
+gtthread_t * get_element_from_queue(queue *que, int num); // gets element from queue
 
 /* Must be called before any of the below functions. Failure to do so may
  * result in undefined behavior. 'period' is the scheduling quantum (interval)

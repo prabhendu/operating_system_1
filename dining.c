@@ -1,103 +1,113 @@
 #include <stdio.h>
 #include "gtthread.h"
 
+// Creating 5 mutexes for 5 chopsticks
 gtthread_mutex_t m1, m2, m3, m4, m5;
+
+/*
+Philosopher 1 goes for m5 and m1 forks
+Philosopher 2 goes for m1 and m2 forks
+Philosopher 3 goes for m2 and m3 forks
+Philosopher 4 goes for m3 and m4 forks
+Philosopher 5 goes for m4 and m5 forks
+Creating 5 threads for 5 Philosophers
+*/
 gtthread_t t1,t2,t3,t4,t5;
 
-void* philosopher(char c)
+void* philosopher(int n)
 {
-	printf("bla\n");
+	printf("Here Philosopher %d begins\n",n);
 	while(1)
 	{
-		if ( c == 'A')
+		if ( n == 1 )
 		{
-			printf("Philosopher A is hungry\n");
-			printf("Philosopher A tries to acquire m #1\n");
+			printf("Philosopher 1 is hungry\n");
+			printf("Philosopher 1 tries to acquire m #1\n");
 			gtthread_mutex_lock(&m1);
-			printf("Philosopher A tries to acquire m #5\n");
+			printf("Philosopher 1 tries to acquire m #5\n");
 			gtthread_mutex_lock(&m5);
-			printf("Philosopher A is eating.\n");
+			printf("Philosopher 1 is eating.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 			gtthread_mutex_unlock(&m5);
-			printf("Philosopher A releases m #5\n");
+			printf("Philosopher 1 releases m #5\n");
 			gtthread_mutex_unlock(&m1);
-			printf("Philosopher A releases m #1\n");
-			printf("Philosopher A is resting.\n");
+			printf("Philosopher 1 releases m #1\n");
+			printf("Philosopher 1 is resting.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 		}
-		else if ( c == 'B')
+		else if ( n == 2 )
 		{
-			printf("Philosopher B is hungry\n");
-			printf("Philosopher B tries to acquire m #1\n");
+			printf("Philosopher 2 is hungry\n");
+			printf("Philosopher 2 tries to acquire m #1\n");
 			gtthread_mutex_lock(&m1);
-			printf("Philosopher B tries to acquire m #2\n");
+			printf("Philosopher 2 tries to acquire m #2\n");
 			gtthread_mutex_lock(&m2);
-			printf("Philosopher B is eating.\n");
+			printf("Philosopher 2 is eating.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 			gtthread_mutex_unlock(&m2);
-			printf("Philosopher B releases m #2\n");
+			printf("Philosopher 2 releases m #2\n");
 			gtthread_mutex_unlock(&m1);
-			printf("Philosopher B releases m #1\n");
-			printf("Philosopher B is resting.\n");
+			printf("Philosopher 2 releases m #1\n");
+			printf("Philosopher 2 is resting.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 		}
-		else if ( c == 'C')
+		else if ( n == 3 )
 		{
-			printf("Philosopher C is hungry\n");
-			printf("Philosopher C tries to acquire m #2\n");
+			printf("Philosopher 3 is hungry\n");
+			printf("Philosopher 3 tries to acquire m #2\n");
 			gtthread_mutex_lock(&m2);
-			printf("Philosopher C tries to acquire m #3\n");
+			printf("Philosopher 3 tries to acquire m #3\n");
 			gtthread_mutex_lock(&m3);
-			printf("Philosopher C is eating.\n");
+			printf("Philosopher 3 is eating.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 			gtthread_mutex_unlock(&m3);
-			printf("Philosopher C releases m #5\n");
+			printf("Philosopher 3 releases m #5\n");
 			gtthread_mutex_unlock(&m2);
-			printf("Philosopher C releases m #1\n");
-			printf("Philosopher C is resting.\n");
+			printf("Philosopher 3 releases m #1\n");
+			printf("Philosopher 3 is resting.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 		}
-		else if ( c == 'D')
+		else if ( n == 4 )
 		{
-			printf("Philosopher D is hungry\n");
-			printf("Philosopher D tries to acquire m #3\n");
+			printf("Philosopher 4 is hungry\n");
+			printf("Philosopher 4 tries to acquire m #3\n");
 			gtthread_mutex_lock(&m3);
-			printf("Philosopher D tries to acquire m #4\n");
+			printf("Philosopher 4 tries to acquire m #4\n");
 			gtthread_mutex_lock(&m4);
-			printf("Philosopher D is eating.\n");
+			printf("Philosopher 4 is eating.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 			gtthread_mutex_unlock(&m4);
-			printf("Philosopher D releases m #4\n");
+			printf("Philosopher 4 releases m #4\n");
 			gtthread_mutex_unlock(&m3);
-			printf("Philosopher D releases m #3\n");
-			printf("Philosopher D is resting.\n");
+			printf("Philosopher 4 releases m #3\n");
+			printf("Philosopher 4 is resting.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 		}
 		else
 		{
-			printf("Philosopher E is hungry\n");
-			printf("Philosopher E tries to acquire m #4\n");
+			printf("Philosopher 5 is hungry\n");
+			printf("Philosopher 5 tries to acquire m #4\n");
 			gtthread_mutex_lock(&m4);
-			printf("Philosopher E tries to acquire m #5\n");
+			printf("Philosopher 5 tries to acquire m #5\n");
 			gtthread_mutex_lock(&m5);
-			printf("Philosopher E is eating.\n");
+			printf("Philosopher 5 is eating.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 			gtthread_mutex_unlock(&m5);
-			printf("Philosopher E releases m #5\n");
+			printf("Philosopher 5 releases m #5\n");
 			gtthread_mutex_unlock(&m4);
-			printf("Philosopher E releases m #4\n");
-			printf("Philosopher E is resting.\n");
+			printf("Philosopher 5 releases m #4\n");
+			printf("Philosopher 5 is resting.\n");
 			gtthread_yield();
-			sleep(1);
+			sleep(2);
 		}
 	}
 return;
@@ -110,12 +120,12 @@ void main()
 	gtthread_mutex_init(&m3);
 	gtthread_mutex_init(&m4);
 	gtthread_mutex_init(&m5);
-	printf("hello\n");
-	gtthread_create(&t1,philosopher, (void *)'A');
-	gtthread_create(&t2,philosopher, (void *)'B');
-	gtthread_create(&t3,philosopher, (void *)'C');
-	gtthread_create(&t4,philosopher, (void *)'D');
-	gtthread_create(&t5,philosopher, (void *)'E');
+	printf("All philosophers about to start eat and think\n");
+	gtthread_create(&t1,philosopher, (void *)1);
+	gtthread_create(&t2,philosopher, (void *)2);
+	gtthread_create(&t3,philosopher, (void *)3);
+	gtthread_create(&t4,philosopher, (void *)4);
+	gtthread_create(&t5,philosopher, (void *)5);
 	while(1);
 	gtthread_exit(NULL);
 }

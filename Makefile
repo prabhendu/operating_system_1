@@ -9,7 +9,7 @@ RANLIB  = ranlib
 
 LIBRARY = gtthread.a
 
-LIB_SRC = gtthread.c gtthread_sched.c gtthread_mutex.c
+LIB_SRC = gtthread.c 
 
 LIB_OBJ = $(patsubst %.c,%.o,$(LIB_SRC))
 
