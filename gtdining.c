@@ -1,15 +1,20 @@
+/*
+Author - Prabhendu Pandey
+GT ID  - 903045568
+*/
+
 #include <stdio.h>
 #include "gtthread.h"
 
-// Creating 5 mutexes for 5 chopsticks
+/* Creating 5 mutexes for 5 chopsticks*/
 gtthread_mutex_t m1, m2, m3, m4, m5;
 
 /*
-Philosopher 1 goes for m5 and m1 forks
-Philosopher 2 goes for m1 and m2 forks
-Philosopher 3 goes for m2 and m3 forks
-Philosopher 4 goes for m3 and m4 forks
-Philosopher 5 goes for m4 and m5 forks
+Philosopher 1 goes for m5 and m1 chopsticks
+Philosopher 2 goes for m1 and m2 chopsticks
+Philosopher 3 goes for m2 and m3 chopsticks
+Philosopher 4 goes for m3 and m4 chopsticks
+Philosopher 5 goes for m4 and m5 chopsticks
 Creating 5 threads for 5 Philosophers
 */
 gtthread_t t1,t2,t3,t4,t5;
@@ -110,22 +115,26 @@ void* philosopher(int n)
 			sleep(2);
 		}
 	}
-return;
+return (void *)0;
 }
 void main()
 {
 	gtthread_init(10);
+
 	gtthread_mutex_init(&m1);
 	gtthread_mutex_init(&m2);
 	gtthread_mutex_init(&m3);
 	gtthread_mutex_init(&m4);
 	gtthread_mutex_init(&m5);
+
 	printf("All philosophers about to start eat and think\n");
+
 	gtthread_create(&t1,philosopher, (void *)1);
 	gtthread_create(&t2,philosopher, (void *)2);
 	gtthread_create(&t3,philosopher, (void *)3);
 	gtthread_create(&t4,philosopher, (void *)4);
 	gtthread_create(&t5,philosopher, (void *)5);
+
 	while(1);
 	gtthread_exit(NULL);
 }

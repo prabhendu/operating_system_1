@@ -1,3 +1,8 @@
+/*
+Author - Prabhendu Pandey
+GT ID  - 903045568
+*/
+
 #include <ucontext.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,12 +10,13 @@
 #include "gtthread.h"
 #include <sys/time.h>
 #include <malloc.h>
+#include <signal.h>
 
 /*The "main" execution context */
 ucontext_t maincontext;
 
-int cancel_current = 0; //Indicator to cancel current thread
-int total_thr_count = 0; //Total thead count
+int cancel_current = 0; /*Indicator to cancel current thread*/
+int total_thr_count = 0; /*Total thead count*/
 
 queue ready_q, finish_q; /* queue to store threads - ready and finished */
 
@@ -183,7 +189,7 @@ void thread_run (void* (*start_routine)(void*), void* arg) {
 
 /*Creates a new context for a thread */
 int gtthread_create (gtthread_t *thread, void *(*start_routine)(void *), void *arg)  {
-	//thread->id = ++total_thr_count; 
+	/*thread->id = ++total_thr_count;*/
 	thread->id = que_size(&ready_q);
 	if ( getcontext(&(thread->uc)) == -1 ) {
 		printf("Error while getting context..exiting\n");
@@ -221,7 +227,7 @@ void gtthread_init (long period) {
 		printf("Error while getting context...exiting\n");
 		exit(EXIT_FAILURE);
 	}	
-	current = &main_t; // Storing main thread as current
+	current = &main_t; /* Storing main thread as current*/
 
 }
 

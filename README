@@ -1,0 +1,63 @@
+/*
+Author - Prabhendu Pandey
+GT ID  - 903045568
+
+GTThread - User level thread library
+Implementation of Dining and Philosophers problem using GTThread
+
+Program Components :
+gtthread.h -> Header file which includes function declarations and global data structures
+gtthread.c -> Library program implementing GTThread
+gtdining.c -> Program implementing Dining and Philosophers problem
+
+Components inside tar file - 
+gtthread.h, gtthread.c, gtdining.c, Makefile, README
+*/
+
+----------------------------------------------------------------------
+1. What Linux platform do you use?
+
+Linux - Ubuntu 14.04 TLS - x86-64
+----------------------------------------------------------------------
+2. How the preemptive scheduler is implemented?
+
+Scheduler is implemented using SIGVTALRM signal and setitimer. 
+After specified quantum, this signal is sent and a handler is 
+called which then fetches next thread from the ready queue and 
+begins processing. It also adds the current thread to back of 
+ready queue. This ensures round-robin methodology with preemption.
+Two queues are maintained - Ready and Finish queues.Ready queue 
+contains threads to be executed. Finish queue contains
+finished/cancelled threads. A global pointer maintains the current
+executing thread.
+----------------------------------------------------------------------
+3. How to compile your library and run your program?
+
+Run "make" to generate library "gtthread.a" and dining philosophers 
+binary "gtdining.o".
+
+To run any program "example.c" using library "gtthread.a" run below
+gcc -Wall -pedantic -w -I{...} -o example example.c gtthread.a
+
+Run "make clean" to remove all binaries
+----------------------------------------------------------------------
+4. How you prevent deadlocks in your Dining Philosophers solution?
+
+Mutex lock is being used to acquire chopsticks in the problem. The way 
+program works is philosopher will first try to acquire lower number
+chopstick first. If he gets this one, he goes for the hihger one.
+If he gets both, then he starts eating. If not, it means that someone
+else is using one of the chopsticks. In that case the philosopher just 
+waits. Finished with eating, philospher releases higher numbered
+chopstik first and then lower numbered chopstick. In this algorithm,
+deadlock is not possible as one waits if the chopstick is not free.
+----------------------------------------------------------------------
+5. Any thoughts you have on the project, including things that work especially well or which don't work.
+
+Initially I started with setcontext, but it gave unclear/random results.
+Swapcontext works fine in this case. Also there is some issue while 
+maintaining main thread. Longer threads will give better visibe results
+as lesser the work, you get less chance to see visible multithreading
+effects. Had (maybe have) problems handling main as a thread.
+On a lighter note, OS implementation is pretty tough.
+----------------------------------------------------------------------
