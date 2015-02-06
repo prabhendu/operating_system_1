@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "gtthread.h"
 #include <sys/time.h>
+#include <malloc.h>
 
 /*The "main" execution context */
 ucontext_t maincontext;
@@ -11,6 +12,7 @@ ucontext_t maincontext;
 /*Count of present threads in progress
   Same is used as thread ID*/
 int cancel_current = 0;
+int total_thr_count = 0;
 
 queue ready_q, finish_q; /* queue to store threads - ready and finished */
 
@@ -36,27 +38,27 @@ void queue_init (queue *que) {
 
 int enqueue (queue *que, gtthread_t *thread) {
         node *temp = (node *) malloc(sizeof(node));
-        if (temp == NULL) return 0;
+        if (temp == NULL) {
+		return 0;
+	}
+	temp->data = thread;
+	temp->next = NULL;
 
-        if (que->rear == NULL) {
+        if (que->rear) {
+                que->rear->next = temp;
                 que->rear = temp;
-                if (que->rear == NULL) return 0;
-                que->rear->data = thread;
-                que->rear->next = NULL;
-                que->front = que->rear;
         }
         else
         {
-                que->rear->next = temp;
-                temp->data = thread;
-                temp->next = NULL;
                 que->rear = temp;
+                que->front = temp;
         }
 	++(que->count);
+
         return 1;
 }
 
-gtthread_t *dequeue (queue *que) {
+gtthread_t * dequeue (queue *que) {
         if (que->front == NULL) return NULL;
         node *temp = (node *) malloc(sizeof(node));
         temp = que->front;
@@ -70,15 +72,7 @@ gtthread_t *dequeue (queue *que) {
 
 /*returns the count of threads in queue*/
 int que_size (queue *que) {
-        node *temp = que->front;
-	if (temp == NULL) return 0;
-        int size = 0;
-	/*size = 0;*/
-        while (temp == que->rear) {
-                ++size;
-                temp = temp->next;
-        }
-        return size;
+        return que->count;
 }
 
 /*Remove an element from queue which matches thread
@@ -88,8 +82,12 @@ int remove_q_ele (queue *que, gtthread_t *thread) {
         node *prev = NULL;
         if (curr == NULL) return 0;
 
+  if (que->count <= 0) {
+    return 0;
+  }
+
         while (curr) {
-                if (curr->data == thread) {
+                if (curr->data->id == thread->id) {
                         if (prev == NULL) {
                                 que->front = curr->next;
                         } else {
@@ -111,19 +109,35 @@ int remove_q_ele (queue *que, gtthread_t *thread) {
 }
 
 /*Find and return thread from the queue*/
-gtthread_t *get_q_ele (queue *que, gtthread_t thread) {
+gtthread_t *get_q_ele (queue *que, int num) {
         node *temp = que->front;
-	gtthread_t *data = NULL;
-        if (temp == NULL) return NULL; /*Empty queue*/
+	print_queue(que);
+        if (que->count <= 0) {
+                return 0   ;
+        }
+	int i=0;
+	gtthread_t *data = 0   ;
         while (temp) {
-                if (temp->data->id == thread.id) {
+                if (i == num) {
                         data = temp->data;
 			return data;
                 }
                 temp = temp->next;
+		++i;
         }
 
-        return NULL;
+        return 0   ;
+}
+
+void print_queue (queue *que) {
+/*For testing purposes*/
+	node *temp = que->front;
+	if (temp == NULL) {
+		return;
+	}
+	while (temp) {
+		temp = temp->next;
+	}
 }
 
 /*queue functions end here*/
@@ -131,29 +145,38 @@ gtthread_t *get_q_ele (queue *que, gtthread_t thread) {
 void scheduler () {
         gtthread_t *prev , *next = NULL;
         stop_time();
-	getcontext(&maincontext);
+	if ( getcontext(&maincontext) == -1 ) {
+		printf("Error while getting context\n");
+		exit(EXIT_FAILURE);
+	}
         prev = current;
 
-        if (cancel_current == 0) {
+        if (!cancel_current) {
                 enqueue(&ready_q, prev);
+		print_queue(&ready_q);
         } else {
                 cancel_current = 0;
         }
 
         next = dequeue(&ready_q);
-        if (next == NULL) exit(EXIT_SUCCESS); /*No thread present in queue*/
+        if (next == NULL) {
+		printf("No thread present in queue\n");
+		exit(EXIT_SUCCESS);
+	} /*No thread present in queue*/
         current = next;
         start_time();
-        swapcontext(&(prev->uc), &(next->uc)); /*calling the next thread*/
+        if ( swapcontext(&(prev->uc), &(next->uc)) == -1 ) {
+		printf("Error while swap context\n"); /*calling the next thread*/
+	}
 }
 
 gtthread_t gtthread_self() {
   return *current;
 }
 
-void thread_run (void* (*func)(void*), void* arg) {
+void thread_run (void* (*start_routine)(void*), void* arg) {
   /* Run the function and gtthread_exit it. */
-  gtthread_exit(func(arg));
+  gtthread_exit(start_routine(arg));
   return;
 }
 
@@ -161,9 +184,13 @@ void thread_run (void* (*func)(void*), void* arg) {
 
 /*Creating new context for a thread */
 int gtthread_create (gtthread_t *thread, void *(*start_routine)(void *), void *arg)  {
+	//thread->id = ++total_thr_count; 
 	thread->id = que_size(&ready_q);
 	/*Getting user context */
-	getcontext(&(thread->uc));
+	if ( getcontext(&(thread->uc)) == -1 ) {
+		printf("Error while getting context..exiting\n");
+		exit(EXIT_FAILURE);
+	}
         /*Modifying context to point to new stack */
 	thread->uc.uc_link = &maincontext;
 	thread->uc.uc_stack.ss_sp = malloc(SIGSTKSZ);
@@ -172,30 +199,36 @@ int gtthread_create (gtthread_t *thread, void *(*start_routine)(void *), void *a
         makecontext(&(thread->uc), (void (*) ()) thread_run, 2, start_routine, arg);
 	/*Queue the thread for execution*/
 	enqueue(&ready_q, thread);
-	/*Start the context 
-	swapcontext(&maincontext,&(thread->uc)); */
+	print_queue(&ready_q);
+	//swapcontext(&maincontext,&(thread->uc)); 
 	return 0 ; /* for now */
 }
 
 void gtthread_init (long period) {
 
-	period_t = period;
 	/*Initializing thread queue*/
 	queue_init(&ready_q);
 	queue_init(&finish_q);
 
 	/*Setting up timer intervals*/
-	timer.it_value.tv_sec=period_t;
-	timer.it_value.tv_usec=0;
-	timer.it_interval.tv_sec=period_t;
-	timer.it_interval.tv_usec=0;
+	timer.it_value.tv_sec=period/1000000;
+	timer.it_value.tv_usec=period;
+	timer.it_interval.tv_sec=period/1000000;
+	timer.it_interval.tv_usec=period;
 	start_time();
 	/*Setting up signal handler*/
 	signal(SIGVTALRM,scheduler);
 
 	/*Saving context for main thread*/
 	main_t.id = -1;
-	getcontext(&(main_t.uc));	
+	if ( getcontext(&(main_t.uc)) == -1) {
+		printf("Error while getting context...exiting\n");
+		exit(EXIT_FAILURE);
+	}	
+	/*main_t.uc.uc_link = &maincontext;
+	main_t.uc.uc_stack.ss_sp = malloc(SIGSTKSZ);
+	main_t.uc.uc_stack.ss_size = SIGSTKSZ;
+	main_t.uc.uc_stack.ss_flags = 0; */
 	current = &main_t;
 
 }
@@ -203,23 +236,30 @@ void gtthread_init (long period) {
 /* Waiting for particular thread */
 int  gtthread_join(gtthread_t thread, void **status) {
 
-	/*Locating thread from queue*/
-	gtthread_t* thr;
-	thr = get_q_ele(&finish_q, thread);
-	if (thr == NULL) return 1; /*NULL returned from queue*/
-
-	/*Looping to check if thread is finished*/
-	while (1) {
-		if (!remove_q_ele(&finish_q, thr)) {
-			if (status) *status = 0;
-			return 1;
-		} else {
-			if (status) *status = thr->retval;
-			return 0;
-		}
+	if (gtthread_equal(thread, gtthread_self())) {
+		return 1;
 	}
-	return gtthread_yield();
 
+	gtthread_t* thr = 0;
+	/*Looping to check if thread is finished*/
+		/*Locating thread from queue*/
+		/*Keep searching until thread is present in finish_q*/
+	while (1) {
+		int i;
+    		for (i = 0; i < que_size(&finish_q); ++i) {
+      		thr = get_q_ele(&finish_q, i);
+     			if (gtthread_equal(*thr, thread)) {
+        			if (!remove_q_ele(&finish_q, thr)) {
+          				if (status && *status) *status = 0;
+          				return 1;
+        			} else {
+          				if (status && *status) *status = thr->retval;
+          				return 0;
+        			}
+      			}				
+    		}	
+    		gtthread_yield();
+ 	}	
 }
 
 /*Cancelling the thread*/
@@ -228,14 +268,20 @@ int gtthread_cancel (gtthread_t thread) {
 	/* Remove the thread from the ready queue. */
 	int found = 0;
 	gtthread_t* thr;
-	thr = get_q_ele(&ready_q, thread);
-	if (thr == NULL) return 1; /*NULL returned from queue*/
 
-	if (!remove_q_ele(&ready_q, thr)) {
-		return 1;
-	} else {
-		found = 1;
-	}
+	int i;
+  	for (i = 0; i < que_size(&ready_q); ++i) {
+    	thr = get_q_ele(&ready_q, i);
+    	if (gtthread_equal(*thr, thread)) {
+      		if (!remove_q_ele(&ready_q, thr)) {
+        		return 1;
+      		} else {
+        		found = 1;
+			printf("Thread removed from ready queue\n");
+        		break;
+      		}
+    	}
+  	}
 
 	if (gtthread_equal(thread, gtthread_self())) {
 	/* If it is the current thread, reschedule. */
@@ -256,8 +302,8 @@ int gtthread_cancel (gtthread_t thread) {
 void gtthread_exit(void *retval) {
 	current->retval = retval;
 	enqueue(&finish_q, current);
+	print_queue(&finish_q);
 	gtthread_cancel(gtthread_self());
-	return;
 }
 
 /*Resource yielding by thread */
@@ -284,16 +330,13 @@ int gtthread_mutex_init (gtthread_mutex_t *mutex) {
 
 int gtthread_mutex_lock (gtthread_mutex_t *mutex) {
 	stop_time();
-	if (mutex->lock == 0) {
+	while (mutex->lock == 1) {
 		start_time();
-		mutex->lock = 1;
-	} else {
-		while (mutex->lock == 1) {
-			start_time();
-			gtthread_yield();
-			stop_time();
-		}
+		gtthread_yield();
+		stop_time();
 	}
+	mutex->lock = 1;
+	start_time();
 	return 0;
 }
 
